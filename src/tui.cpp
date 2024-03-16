@@ -186,7 +186,7 @@ pair<string, enum InputEvent> InputBox::get_input(string prefilled, enum InputMo
                     wattron(input_box, COLOR_PAIR(1));
                 }
             }
-        } else if (ch == 267) {
+        } else if (ch == 267) { // F3
             if (mode != INSERT)
                 continue;
             if (input.length() != 0)
@@ -263,7 +263,7 @@ void ChatWindow::send_message(const string &message) {
 }
 
 void ChatWindow::message_received(const string &user, const string &message) {
-    messages->push_back({messages->size(), "user2", message});
+    messages->push_back({messages->size(), user, message});
     create_chat_box();
 }
 

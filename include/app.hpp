@@ -2,12 +2,24 @@
 #define SSL_CHAT_APP_APP_H
 
 #include "tui.hpp"
+#include <thread>
+
+enum UserRole {
+    SERVER,
+    CLIENT,
+};
 
 
 class ChatApp {
     ChatWindow *chatWindow = NULL;
     string user;
     string other_user;
+    UserRole role;
+    string hostname;
+    uint8_t port;
+    thread *network_thread;
+
+    bool connected = false;
     vector <Message> messages = {
         {0, "user1", "hello"},
         {1, "user2", "hi"},
@@ -22,11 +34,18 @@ class ChatApp {
     };
 
     public:
-    ChatApp();
+    ChatApp(UserRole role, string user, string hostname, uint16_t port);
     ~ChatApp();
     void init_color();
     void create_window();
+    void run();
+    void run_client();
+    void run_server();
+    void handle_client();
     void run_tui();
+    void stop_network_thread();
+    void stop_client();
+    void stop_server();
 };
 
 #endif //SSL_CHAT_APP_APP_H

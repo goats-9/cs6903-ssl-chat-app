@@ -3,6 +3,6 @@
 // argument parsing
 
 int main(){
-    ChatApp app;
-    app.run_tui(/* ARGS */);
+    ChatApp app(SERVER, "user1", "localhost", 8080);
+    app.run_tui();
 }
