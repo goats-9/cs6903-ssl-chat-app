@@ -235,6 +235,8 @@ ChatWindow::~ChatWindow() {
 void ChatWindow::send_message(const string &message) {
     messages->push_back({messages->size(), user, message});
     create_chat_box();
+
+    // network.send_message(user, message);
 }
 
 void ChatWindow::message_received(const string &user, const string &message) {

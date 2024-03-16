@@ -7,6 +7,7 @@
 class ChatApp {
     ChatWindow *chatWindow = NULL;
     string user;
+    string other_user;
     vector <Message> messages = {
         {0, "user1", "hello"},
         {1, "user2", "hi"},
@@ -25,7 +26,7 @@ class ChatApp {
     ~ChatApp();
     void init_color();
     void create_window();
-    void run();
+    void run_tui();
 };
 
 #endif //SSL_CHAT_APP_APP_H

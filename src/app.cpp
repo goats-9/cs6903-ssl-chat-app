@@ -38,7 +38,14 @@ ChatApp::~ChatApp() {
     endwin();
 }
 
-void ChatApp::run() {
+// run network
+// void ..... {
+    // get other_user name
+    // msg = recv_from_other_user();
+    // chatWindow->message_received(user, msg);
+// }
+
+void ChatApp::run_tui() {
     do {
         create_window();
     } while (chatWindow->run_forever());
