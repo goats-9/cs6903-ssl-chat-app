@@ -80,6 +80,7 @@ class InputBox {
     // If boolean is false then escape was pressed
     pair<string, InputEvent> get_input(string prefilled="", InputMode mode=INSERT);
     void clear_input();
+    void print_message(const string &message, bool clear=true);
 };
 
 class ChatWindow {

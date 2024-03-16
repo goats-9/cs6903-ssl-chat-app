@@ -120,23 +120,42 @@ void InputBox::clear_input() {
     wattron(input_box_border, COLOR_PAIR(1));
 }
 
+void InputBox::print_message(const string &message, bool clear) {
+    if (clear)
+        clear_input();
+
+    int visible_char_len = (input_box_width-2)*(input_box_height-2);
+    string visible_message;
+    if (message.length() < visible_char_len){
+        visible_message = message;
+    } else {
+        visible_message = message.substr(message.length()-visible_char_len, visible_char_len);
+    }
+    wprintw(input_box, "%s", visible_message.c_str());
+    wrefresh(input_box);
+}
+
 pair<string, enum InputEvent> InputBox::get_input(string prefilled, enum InputMode mode) {
-    wmove(input_box, 0, 0);
-    clear_input();
-    wprintw(input_box, "%s", prefilled.c_str());
+    // wmove(input_box, 0, 0);
+    // clear_input();
+    // wprintw(input_box, "%s", prefilled.c_str());
+
+    print_message(prefilled);
 
     string input = prefilled;
     int ch;
     while (true) {
         if (mode == INSERT){
             if (input.length() == 0){
-                clear_input();
-                wprintw(input_box, "Type here: ");
+                // clear_input();
+                // wprintw(input_box, "Type here: ");
+                print_message("Type here: ");
             }
         }
         else {
-            clear_input();
-            wprintw(input_box, "Press ESC to insert");
+            // clear_input();
+            // wprintw(input_box, "Press ESC to insert");
+            print_message("Press ESC to insert");
         }
         wrefresh(input_box);
         ch = getch();
@@ -151,16 +170,19 @@ pair<string, enum InputEvent> InputBox::get_input(string prefilled, enum InputMo
         } else if (ch == KEY_BACKSPACE) {
             if (input.length() > 0) {
                 input.pop_back();
-                clear_input();
-                wprintw(input_box, "%s", input.c_str());
+                // clear_input();
+                // wprintw(input_box, "%s", input.c_str());
+                print_message(input);
             }
             if (input.length() == 0){
-                clear_input();
                 if (mode == INSERT)
-                    wprintw(input_box, "Type here: ");
+                    // wprintw(input_box, "Type here: ");
+                    print_message("Type here: ");
                 else {
+                    clear_input();
                     wattron(input_box, COLOR_PAIR(4));
-                    wprintw(input_box, "Press ESC to exit");
+                    // wprintw(input_box, "Press ESC to exit");
+                    print_message("Press ESC to exit");
                     wattron(input_box, COLOR_PAIR(1));
                 }
             }
@@ -183,8 +205,9 @@ pair<string, enum InputEvent> InputBox::get_input(string prefilled, enum InputMo
             if (mode == INSERT){
                 log_file << "input: " << ch << endl;
                 input += ch;
-                clear_input();
-                wprintw(input_box, "%s", input.c_str());
+                // clear_input();
+                // wprintw(input_box, "%s", input.c_str());
+                print_message(input);
             }
         }
     }
