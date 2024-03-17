@@ -73,12 +73,6 @@ void ChatApp::run_client()
     // start_client();
 }
 
-// void ChatApp::handle_client()
-// {
-//     // handshake
-//     // call message_received when message is received
-// }
-
 void ChatApp::run_server()
 {
     // start server
