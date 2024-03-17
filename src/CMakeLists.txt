@@ -36,7 +36,7 @@ target_link_libraries(
   ${CURSES_LIBRARIES}
 )
 
-set(CMAKE_BINARY_DIR ${CMAKE_SOURCE_DIR}/bin)
+set(CMAKE_BINARY_DIR ${CMAKE_SOURCE_DIR}/build)
 
 # Install chat_app in the bin directory
 install(
