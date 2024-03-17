@@ -2,7 +2,7 @@
 
 // argument parsing
 
-int main(){
+int main() {
     ChatApp app(SERVER, "user1", "localhost", 8080);
     app.run_tui();
 }

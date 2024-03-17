@@ -1,3 +1,5 @@
+#ifndef SSL_CHAT_APP_NET_H
+#define SSL_CHAT_APP_NET_H
 #include "app.hpp"
 #include <bits/stdc++.h>
 #include <netinet/in.h>
@@ -49,3 +51,10 @@ public:
     void start();
     bool handshake();
 };
+
+int server_init();
+int client_init();
+void close_socket(int);
+int send_msg(int, char *);
+char *recv_msg(int);
+#endif

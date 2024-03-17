@@ -94,11 +94,11 @@ void ChatApp::stop_network_thread()
     // stop the network thread
     if (role == SERVER)
     {
-        stop_server();
+        ChatApp::stop_server();
     }
     else
     {
-        stop_client();
+        ChatApp::stop_client();
     }
 }
 
