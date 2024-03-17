@@ -1,11 +1,11 @@
 #ifndef SSL_CHAT_APP_NET_H
 #define SSL_CHAT_APP_NET_H
 #include "app.hpp"
-#include <bits/stdc++.h>
 #include <netinet/in.h>
 #include <sys/socket.h>
 #include <unistd.h>
 
+void *get_in_addr(struct sockaddr *);
 
 class Socket
 {
@@ -28,6 +28,7 @@ class Server
     uint32_t ip;
     int port;
     struct sockaddr_in server;
+    struct addrinfo *servinfo;
     ChatWindow *chat_window;
 
 public:
@@ -45,18 +46,11 @@ class Client
     int port;
     struct sockaddr_in server;
     ChatWindow *chat_window;
+    struct addrinfo *servinfo;
 
 public:
     Client(uint32_t ip, int port, ChatWindow *chat_window);
-    void start();
+    void start(char *);
     bool handshake();
 };
-
-int server_init();
-int client_init();
-void close_socket(int);
-int send_msg(int, char *);
-char *recv_msg(int);
-int send_ctrl_msg(int, char *);
-char *recv_ctrl_msg(int);
 #endif
