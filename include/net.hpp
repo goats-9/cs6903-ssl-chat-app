@@ -18,7 +18,9 @@ public:
     Socket(ChatWindow *chat_window, int skt = -1);
     ~Socket();
     string receive_msg();
+    string receive_ctl_msg();
     void send_msg(string msg);
+    void send_ctl_msg(string msg);
     void run();
 };
 

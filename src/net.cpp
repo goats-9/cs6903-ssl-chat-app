@@ -55,12 +55,25 @@ string Socket::receive_msg()
     return string(buffer);
 }
 
+string Socket::receive_ctl_msg() {
+    string recv_msg = Socket::receive_msg();
+    // Send ACK
+    send_msg("ACK");
+}
+
 void Socket::send_msg(string msg)
 {
     if (send(skt, msg.c_str(), msg.size(), 0) == -1) {
         perror("socket: send_msg");
         exit(1);
     }
+}
+
+void Socket::send_ctl_msg(string msg) {
+    Socket::send_msg(msg);
+    // Wait for ACK
+    while (Socket::receive_msg() != "ACK");
+    return;
 }
 
 void Socket::run()
