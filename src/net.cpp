@@ -1,53 +1,152 @@
 #include "net.hpp"
 #include "tui.hpp"
-#include <bits/stdc++.h>
-#include <netinet/in.h>
-#include <sys/socket.h>
+#include <stdio.h>
+#include <stdlib.h>
 #include <unistd.h>
+#include <errno.h>
+#include <string.h>
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
+#include <netdb.h>
 #define PORT_NUM 8080
+#define PORT "8080"
 #define BUFFER_SIZE 1024
-using namespace std;
 
-int serverSocket;
-int clientSocket;
+struct addrinfo *p;
 
-void start_server()
+// get sockaddr, IPv4 or IPv6:
+void *get_in_addr(struct sockaddr *sa)
 {
-    serverSocket = socket(AF_INET, SOCK_STREAM, 0);
+    if (sa->sa_family == AF_INET) {
+        return &(((struct sockaddr_in*)sa)->sin_addr);
+    }
 
-    struct sockaddr_in serverAddr;
-    serverAddr.sin_family = AF_INET;
-    serverAddr.sin_addr.s_addr = INADDR_ANY;
-    serverAddr.sin_port = htons(PORT_NUM);
-
-    bind(serverSocket, (struct sockaddr *)&serverAddr, sizeof(serverAddr));
-    listen(serverSocket, 5);
-
-    int newSocket = accept(serverSocket, nullptr, nullptr);
-    /* create a new thread for each connection*/
-    char msg[BUFFER_SIZE];
-    /*'msg' from received_message func*/
-    recv(newSocket, msg, sizeof(msg), 0);
+    return &(((struct sockaddr_in6*)sa)->sin6_addr);
 }
 
-void start_client()
-{
-    clientSocket = socket(AF_INET, SOCK_STREAM, 0);
-    struct sockaddr_in serverAddress;
-    serverAddress.sin_family = AF_INET;
-    serverAddress.sin_addr.s_addr = INADDR_ANY;
-    serverAddress.sin_port = htons(8080);
+int server_init() {
+    int sockfd;
+    struct addrinfo hints, *servinfo;
+    int rv;
+    int numbytes;
+    struct sockaddr_storage their_addr;
+    char buf[BUFFER_SIZE];
+    socklen_t addr_len;
+    char s[INET6_ADDRSTRLEN];
 
-    connect(clientSocket, (struct sockaddr *)&serverAddress, sizeof(serverAddress));
-    char *message = "hello I am client";
-    /* 'message' is the msg from send_message func*/
-    send(clientSocket, message, strlen(message), 0);
+    memset(&hints, 0, sizeof hints);
+    hints.ai_family = AF_INET; // set to AF_INET to use IPv4
+    hints.ai_socktype = SOCK_DGRAM;
+    hints.ai_flags = AI_PASSIVE; // use my IP
+
+    if ((rv = getaddrinfo(NULL, PORT, &hints, &servinfo)) != 0) {
+        fprintf(stderr, "getaddrinfo: %s\n", gai_strerror(rv));
+        return 1;
+    }
+
+    // loop through all the results and bind to the first we can
+    for(p = servinfo; p != NULL; p = p->ai_next) {
+        if ((sockfd = socket(p->ai_family, p->ai_socktype,
+                p->ai_protocol)) == -1) {
+            perror("listener: socket");
+            continue;
+        }
+
+        if (bind(sockfd, p->ai_addr, p->ai_addrlen) == -1) {
+            close(sockfd);
+            perror("listener: bind");
+            continue;
+        }
+
+        break;
+    }
+
+    if (p == NULL) {
+        fprintf(stderr, "listener: failed to bind socket\n");
+        return 2;
+    }
+
+    freeaddrinfo(servinfo);
+
+    return sockfd;
 }
-void server_stop()
-{
-    close(serverSocket);
+
+char *recv_msg(int sockfd) {
+    socklen_t addr_len;
+    int numbytes;
+    struct sockaddr_storage their_addr;
+    char buf[BUFFER_SIZE];
+    char s[INET6_ADDRSTRLEN];
+    printf("listener: waiting to recvfrom...\n");
+
+    addr_len = sizeof their_addr;
+    if ((numbytes = recvfrom(sockfd, buf, BUFFER_SIZE-1 , 0,
+        (struct sockaddr *)&their_addr, &addr_len)) == -1) {
+        perror("recvfrom");
+        exit(1);
+    }
+
+    printf("listener: got packet from %s\n",
+        inet_ntop(their_addr.ss_family,
+            get_in_addr((struct sockaddr *)&their_addr),
+            s, sizeof s));
+    printf("listener: packet is %d bytes long\n", numbytes);
+    buf[numbytes] = '\0';
+    printf("listener: packet contains \"%s\"\n", buf);
+
+    return buf;
 }
-void client_stop()
-{
-    close(clientSocket);
+
+int client_init(char *server_name) {
+    int sockfd;
+    struct addrinfo hints, *servinfo, *p;
+    int rv;
+    int numbytes;
+
+    memset(&hints, 0, sizeof hints);
+    hints.ai_family = AF_INET; // set to AF_INET to use IPv4
+    hints.ai_socktype = SOCK_DGRAM;
+
+    if ((rv = getaddrinfo(server_name, PORT, &hints, &servinfo)) != 0) {
+        fprintf(stderr, "getaddrinfo: %s\n", gai_strerror(rv));
+        return 1;
+    }
+
+    // loop through all the results and make a socket
+    for(p = servinfo; p != NULL; p = p->ai_next) {
+        if ((sockfd = socket(p->ai_family, p->ai_socktype,
+                p->ai_protocol)) == -1) {
+            perror("talker: socket");
+            continue;
+        }
+
+        break;
+    }
+
+    if (p == NULL) {
+        fprintf(stderr, "talker: failed to create socket\n");
+        return 2;
+    }
+
+    freeaddrinfo(servinfo);
+
+    return sockfd;
 }
+
+int send_msg(int sockfd, char *msg) {
+    int numbytes;
+    if ((numbytes = sendto(sockfd, msg, strlen(msg), 0,
+             p->ai_addr, p->ai_addrlen)) == -1) {
+        perror("talker: sendto");
+        exit(1);
+    }
+
+    // printf("talker: sent %d bytes to %s\n", numbytes, argv[1]);
+    close(sockfd);
+
+    return 0;
+}
+
+void close_socket(int sockfd) { close(sockfd); }
