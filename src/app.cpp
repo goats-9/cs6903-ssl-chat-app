@@ -70,21 +70,15 @@ void ChatApp::run_client()
     // connect to server
     // handshake
     // call message_received when message is received
-    start_client();
+    // start_client();
 }
-
-// void ChatApp::handle_client()
-// {
-//     // handshake
-//     // call message_received when message is received
-// }
 
 void ChatApp::run_server()
 {
     // start server
     // accept connections
     // create new thread for each connection
-    start_server();
+    // start_server();
 }
 
 void ChatApp::run_tui()
@@ -111,11 +105,11 @@ void ChatApp::stop_network_thread()
 void ChatApp::stop_client()
 {
     // stop the client
-    client_stop();
+    // client_stop();
 }
 
 void ChatApp::stop_server()
 {
     // stop the server
-    server_stop();
+    // server_stop();
 }

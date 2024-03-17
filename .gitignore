@@ -13,3 +13,4 @@ exp
 build
 *.log
 .vscode
+*.out
