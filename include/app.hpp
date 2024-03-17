@@ -3,14 +3,14 @@
 
 #include "tui.hpp"
 #include <thread>
-
-enum UserRole {
+enum UserRole
+{
     SERVER,
     CLIENT,
 };
 
-
-class ChatApp {
+class ChatApp
+{
     ChatWindow *chatWindow = NULL;
     string user;
     string other_user;
@@ -20,7 +20,7 @@ class ChatApp {
     thread *network_thread;
 
     bool connected = false;
-    vector <Message> messages = {
+    vector<Message> messages = {
         {0, "user1", "hello"},
         {1, "user2", "hi"},
         {2, "user1", "how are you?"},
@@ -30,10 +30,9 @@ class ChatApp {
         {6, "user1", "I'm good"},
         {7, "user2", "that's great"},
         {8, "user1", "bye"},
-        {9, "user2", "bye"}
-    };
+        {9, "user2", "bye"}};
 
-    public:
+public:
     ChatApp(UserRole role, string user, string hostname, uint16_t port);
     ~ChatApp();
     void init_color();
@@ -48,4 +47,4 @@ class ChatApp {
     void stop_server();
 };
 
-#endif //SSL_CHAT_APP_APP_H
+#endif // SSL_CHAT_APP_APP_H

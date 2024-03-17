@@ -1,6 +1,8 @@
 #include "app.hpp"
+#include "net.hpp"
 
-ChatApp::ChatApp(UserRole role, string user, string hostname, uint16_t port) {
+ChatApp::ChatApp(UserRole role, string user, string hostname, uint16_t port)
+{
     this->role = role;
     this->user = user;
     this->hostname = hostname;
@@ -17,8 +19,10 @@ ChatApp::ChatApp(UserRole role, string user, string hostname, uint16_t port) {
     user = "user1"; // TODO: get user config file or cmdline arg
 }
 
-void ChatApp::create_window() {
-    if (chatWindow != NULL) {
+void ChatApp::create_window()
+{
+    if (chatWindow != NULL)
+    {
         delete chatWindow;
     }
     int height, width;
@@ -28,7 +32,8 @@ void ChatApp::create_window() {
     wrefresh(stdscr);
 }
 
-void ChatApp::init_color(){
+void ChatApp::init_color()
+{
     start_color();
 
     init_pair(1, COLOR_WHITE, COLOR_BLACK);
@@ -37,17 +42,22 @@ void ChatApp::init_color(){
     init_pair(4, COLOR_BLACK, COLOR_WHITE);
 }
 
-ChatApp::~ChatApp() {
+ChatApp::~ChatApp()
+{
     if (chatWindow != NULL)
         delete chatWindow;
     endwin();
 }
 
-void ChatApp::run() {
-    if (role == SERVER) {
+void ChatApp::run()
+{
+    if (role == SERVER)
+    {
         thread server_thread(&ChatApp::run_server, this);
         this->network_thread = &server_thread;
-    } else {
+    }
+    else
+    {
         thread client_thread(&ChatApp::run_client, this);
         this->network_thread = &client_thread;
     }
@@ -55,42 +65,57 @@ void ChatApp::run() {
     stop_network_thread();
 }
 
-void ChatApp::run_client() {
+void ChatApp::run_client()
+{
     // connect to server
     // handshake
     // call message_received when message is received
+    start_client();
 }
 
-void ChatApp::handle_client() {
-    // handshake
-    // call message_received when message is received
-}
+// void ChatApp::handle_client()
+// {
+//     // handshake
+//     // call message_received when message is received
+// }
 
-void ChatApp::run_server() {
+void ChatApp::run_server()
+{
     // start server
     // accept connections
     // create new thread for each connection
+    start_server();
 }
 
-void ChatApp::run_tui() {
-    do {
+void ChatApp::run_tui()
+{
+    do
+    {
         create_window();
     } while (chatWindow->run_forever());
 }
 
-void ChatApp::stop_network_thread() {
+void ChatApp::stop_network_thread()
+{
     // stop the network thread
-    if (role == SERVER) {
+    if (role == SERVER)
+    {
         stop_server();
-    } else {
+    }
+    else
+    {
         stop_client();
     }
 }
 
-void ChatApp::stop_client() {
+void ChatApp::stop_client()
+{
     // stop the client
+    client_stop();
 }
 
-void ChatApp::stop_server() {
+void ChatApp::stop_server()
+{
     // stop the server
+    server_stop();
 }
