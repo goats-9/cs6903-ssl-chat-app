@@ -18,8 +18,11 @@ class ChatApp
     string hostname;
     uint8_t port;
     thread *network_thread;
-
+    uint32_t ip;
+    int Port;
+    ChatWindow *chat_window;
     bool connected = false;
+
     vector<Message> messages = {
         {0, "user1", "hello"},
         {1, "user2", "hi"},

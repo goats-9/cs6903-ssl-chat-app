@@ -17,11 +17,12 @@
 // get sockaddr, IPv4 or IPv6:
 void *get_in_addr(struct sockaddr *sa)
 {
-    if (sa->sa_family == AF_INET) {
-        return &(((struct sockaddr_in*)sa)->sin_addr);
+    if (sa->sa_family == AF_INET)
+    {
+        return &(((struct sockaddr_in *)sa)->sin_addr);
     }
 
-    return &(((struct sockaddr_in6*)sa)->sin6_addr);
+    return &(((struct sockaddr_in6 *)sa)->sin6_addr);
 }
 
 Socket::Socket(ChatWindow *chat_window, int skt)
@@ -29,7 +30,8 @@ Socket::Socket(ChatWindow *chat_window, int skt)
     this->chat_window = chat_window;
     if (skt == -1)
     {
-        if (this->skt = socket(AF_INET, SOCK_DGRAM, 0)) {
+        if (this->skt = socket(AF_INET, SOCK_DGRAM, 0))
+        {
             perror("socket: socket");
             exit(1);
         }
@@ -48,14 +50,16 @@ Socket::~Socket()
 string Socket::receive_msg()
 {
     char buffer[BUFFER_SIZE];
-    if (recv(skt, buffer, BUFFER_SIZE, 0) == -1) {
+    if (recv(skt, buffer, BUFFER_SIZE, 0) == -1)
+    {
         perror("socket: receive_msg");
         exit(1);
     }
     return string(buffer);
 }
 
-string Socket::receive_ctl_msg() {
+string Socket::receive_ctl_msg()
+{
     string recv_msg = Socket::receive_msg();
     // Send ACK
     send_msg("ACK");
@@ -63,16 +67,19 @@ string Socket::receive_ctl_msg() {
 
 void Socket::send_msg(string msg)
 {
-    if (send(skt, msg.c_str(), msg.size(), 0) == -1) {
+    if (send(skt, msg.c_str(), msg.size(), 0) == -1)
+    {
         perror("socket: send_msg");
         exit(1);
     }
 }
 
-void Socket::send_ctl_msg(string msg) {
+void Socket::send_ctl_msg(string msg)
+{
     Socket::send_msg(msg);
     // Wait for ACK
-    while (Socket::receive_msg() != "ACK");
+    while (Socket::receive_msg() != "ACK")
+        ;
     return;
 }
 
@@ -108,7 +115,8 @@ void Server::start()
     hints.ai_socktype = SOCK_DGRAM;
     hints.ai_flags = AI_PASSIVE; // use my IP
 
-    if ((rv = getaddrinfo(NULL, PORT, &hints, &this->servinfo)) != 0) {
+    if ((rv = getaddrinfo(NULL, PORT, &hints, &this->servinfo)) != 0)
+    {
         fprintf(stderr, "getaddrinfo: %s\n", gai_strerror(rv));
         exit(1);
     }
@@ -118,14 +126,17 @@ void Server::handle_client(int client_skt)
 {
     struct addrinfo *p;
     // loop through all the results and bind to the first we can
-    for(p = this->servinfo; p != NULL; p = p->ai_next) {
+    for (p = this->servinfo; p != NULL; p = p->ai_next)
+    {
         if ((this->skt = socket(p->ai_family, p->ai_socktype,
-                p->ai_protocol)) == -1) {
+                                p->ai_protocol)) == -1)
+        {
             perror("listener: socket");
             continue;
         }
 
-        if (bind(this->skt, p->ai_addr, p->ai_addrlen) == -1) {
+        if (bind(this->skt, p->ai_addr, p->ai_addrlen) == -1)
+        {
             close(this->skt);
             perror("listener: bind");
             continue;
@@ -134,7 +145,8 @@ void Server::handle_client(int client_skt)
         break;
     }
 
-    if (p == NULL) {
+    if (p == NULL)
+    {
         fprintf(stderr, "listener: failed to bind socket\n");
         exit(2);
     }
@@ -165,7 +177,7 @@ Client::Client(uint32_t ip, int port, ChatWindow *chat_window)
     skt = socket(AF_INET, SOCK_STREAM, 0);
 }
 
-void Client::start(char *server_name)
+void Client::start(string server_name)
 {
     struct addrinfo hints, *p;
     int rv;
@@ -174,15 +186,18 @@ void Client::start(char *server_name)
     hints.ai_family = AF_INET; // set to AF_INET to use IPv4
     hints.ai_socktype = SOCK_DGRAM;
 
-    if ((rv = getaddrinfo(server_name, PORT, &hints, &this->servinfo)) != 0) {
+    if ((rv = getaddrinfo(server_name.c_str(), PORT, &hints, &this->servinfo)) != 0)
+    {
         fprintf(stderr, "getaddrinfo: %s\n", gai_strerror(rv));
         exit(1);
     }
 
     // loop through all the results and make a socket
-    for(p = this->servinfo; p != NULL; p = p->ai_next) {
+    for (p = this->servinfo; p != NULL; p = p->ai_next)
+    {
         if ((this->skt = socket(p->ai_family, p->ai_socktype,
-                p->ai_protocol)) == -1) {
+                                p->ai_protocol)) == -1)
+        {
             perror("talker: socket");
             continue;
         }
@@ -190,7 +205,8 @@ void Client::start(char *server_name)
         break;
     }
 
-    if (p == NULL) {
+    if (p == NULL)
+    {
         fprintf(stderr, "talker: failed to create socket\n");
         exit(2);
     }
@@ -206,4 +222,9 @@ bool Client::handshake()
 {
     // TODO: implement handshake
     return true;
+}
+
+void Client::stop()
+{
+    close(this->skt);
 }

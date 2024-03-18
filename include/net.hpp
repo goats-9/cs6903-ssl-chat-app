@@ -10,7 +10,7 @@ void *get_in_addr(struct sockaddr *);
 class Socket
 {
     ChatWindow *chat_window;
-    bool running=false;
+    bool running = false;
 
 public:
     string user;
@@ -52,7 +52,8 @@ class Client
 
 public:
     Client(uint32_t ip, int port, ChatWindow *chat_window);
-    void start(char *);
+    void start(string);
     bool handshake();
+    void stop();
 };
 #endif

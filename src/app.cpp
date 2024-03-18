@@ -68,9 +68,11 @@ void ChatApp::run()
 void ChatApp::run_client()
 {
     // connect to server
-    // handshake
-    // call message_received when message is received
-    // start_client();
+    //  handshake
+    //  call message_received when message is received
+    //  start_client();
+    Client client(ip, Port, chat_window);
+    client.start(hostname);
 }
 
 void ChatApp::run_server()
@@ -79,6 +81,8 @@ void ChatApp::run_server()
     // accept connections
     // create new thread for each connection
     // start_server();
+    Server server(ip, Port, chat_window);
+    server.start();
 }
 
 void ChatApp::run_tui()
@@ -106,10 +110,14 @@ void ChatApp::stop_client()
 {
     // stop the client
     // client_stop();
+    Client client(ip, Port, chat_window);
+    client.stop();
 }
 
 void ChatApp::stop_server()
 {
     // stop the server
     // server_stop();
+    Server server(ip, Port, chat_window);
+    server.stop();
 }
