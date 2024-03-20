@@ -1,5 +1,8 @@
 #include "app.hpp"
 #include "net.hpp"
+#include <fstream>
+
+extern ofstream log_file;
 
 ChatApp::ChatApp(UserRole role, string user, string hostname, uint16_t port)
 {
@@ -29,6 +32,14 @@ void ChatApp::create_window()
 
     getmaxyx(stdscr, height, width);
     chatWindow = new ChatWindow(stdscr, &messages, height, width, 0, 0, user);
+    if (role == SERVER)
+    {
+        chatWindow->socketObj = server->socketObj;
+    }
+    else
+    {
+        chatWindow->socketObj = client->socketObj;
+    }
     wrefresh(stdscr);
 }
 
@@ -51,17 +62,19 @@ ChatApp::~ChatApp()
 
 void ChatApp::run()
 {
+    log_file << "running" << endl;
     if (role == SERVER)
     {
-        thread server_thread(&ChatApp::run_server, this);
-        this->network_thread = &server_thread;
+        log_file << "starting thread" << endl;
+        network_thread = new thread(&ChatApp::run_server, this);
+        log_file << "thread started" << endl;
     }
     else
     {
-        thread client_thread(&ChatApp::run_client, this);
-        this->network_thread = &client_thread;
+        network_thread = new thread(&ChatApp::run_client, this);
     }
     run_tui();
+    log_file << "tui stopped" << endl;
     stop_network_thread();
 }
 
@@ -72,7 +85,9 @@ void ChatApp::run_client()
     //  call message_received when message is received
     //  start_client();
     Client client(ip, Port, chat_window);
+    log_file << "client starting" << endl;
     client.start(hostname);
+    log_file << "client stopped" << endl;
 }
 
 void ChatApp::run_server()
@@ -81,12 +96,18 @@ void ChatApp::run_server()
     // accept connections
     // create new thread for each connection
     // start_server();
+
+    log_file << "running server" << endl;
+    log_file.flush();
     Server server(ip, Port, chat_window);
+    log_file << "server starting" << endl;
     server.start();
+    log_file << "server stopped" << endl;
 }
 
 void ChatApp::run_tui()
 {
+    log_file << "running tui" << endl;
     do
     {
         create_window();
@@ -110,14 +131,12 @@ void ChatApp::stop_client()
 {
     // stop the client
     // client_stop();
-    Client client(ip, Port, chat_window);
-    client.stop();
+    
 }
 
 void ChatApp::stop_server()
 {
     // stop the server
     // server_stop();
-    Server server(ip, Port, chat_window);
-    server.stop();
+    
 }

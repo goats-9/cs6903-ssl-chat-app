@@ -2,7 +2,7 @@
 #include <fstream>
 #include <algorithm>
 
-ofstream log_file("log.log");
+extern ofstream log_file;
 
 MessageBox::MessageBox(WINDOW *parent, string sender, const string &msg, int width, int starty, int startx, bool sender_is_self) {
     if (sender_is_self)
@@ -68,7 +68,6 @@ ChatBox::~ChatBox() {
 vector<Message> ChatBox::get_messages_to_show(const vector<Message>& messages) {
     int y = 1;
     int i = messages.size()-*scroll_offset-1;
-    log_file << "scroll_offset: " << scroll_offset << endl;
     vector<Message> msgs;
     for (; i>=0; i--){
         // add number of lines required to display the message + 1 for the line separator
@@ -203,7 +202,6 @@ pair<string, enum InputEvent> InputBox::get_input(string prefilled, enum InputMo
             return make_pair(input, WIN_RESIZE);
         } else {
             if (mode == INSERT){
-                log_file << "input: " << ch << endl;
                 input += ch;
                 // clear_input();
                 // wprintw(input_box, "%s", input.c_str());
@@ -259,7 +257,8 @@ void ChatWindow::send_message(const string &message) {
     messages->push_back({messages->size(), user, message});
     create_chat_box();
 
-    // network.send_message(user, message);
+    // socketObj->send_msg(message);
+
 }
 
 void ChatWindow::message_received(const string &user, const string &message) {

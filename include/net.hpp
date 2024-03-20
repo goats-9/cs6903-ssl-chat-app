@@ -15,6 +15,7 @@ class Socket
 public:
     string user;
     int skt;
+    sockaddr_in addr;
     Socket(ChatWindow *chat_window, int skt = -1);
     ~Socket();
     string receive_msg();
@@ -29,15 +30,16 @@ class Server
     int skt;
     uint32_t ip;
     int port;
-    struct sockaddr_in server;
+    struct sockaddr server;
     struct addrinfo *servinfo;
     ChatWindow *chat_window;
 
 public:
+    Socket *socketObj;
     Server(uint32_t ip, int port, ChatWindow *chat_window);
     void start();
-    bool handshake(int client_skt);
-    void handle_client(int client_skt);
+    bool handshake();
+    void handle_client();
     void stop();
 };
 
@@ -46,11 +48,12 @@ class Client
     int skt;
     uint32_t ip;
     int port;
-    struct sockaddr_in server;
+    struct sockaddr server;
     ChatWindow *chat_window;
     struct addrinfo *servinfo;
 
 public:
+    Socket *socketObj;
     Client(uint32_t ip, int port, ChatWindow *chat_window);
     void start(string);
     bool handshake();

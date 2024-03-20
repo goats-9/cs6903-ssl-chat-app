@@ -17,11 +17,13 @@ class ChatApp
     UserRole role;
     string hostname;
     uint8_t port;
-    thread *network_thread;
+    thread *network_thread = NULL;
     uint32_t ip;
     int Port;
-    ChatWindow *chat_window;
+    ChatWindow *chat_window = NULL;
     bool connected = false;
+    Server *server = NULL;
+    Client *client = NULL;
 
     vector<Message> messages = {
         {0, "user1", "hello"},
@@ -33,7 +35,8 @@ class ChatApp
         {6, "user1", "I'm good"},
         {7, "user2", "that's great"},
         {8, "user1", "bye"},
-        {9, "user2", "bye"}};
+        {9, "user2", "bye"}
+    };
 
 public:
     ChatApp(UserRole role, string user, string hostname, uint16_t port);
@@ -43,7 +46,6 @@ public:
     void run();
     void run_client();
     void run_server();
-    void handle_client();
     void run_tui();
     void stop_network_thread();
     void stop_client();

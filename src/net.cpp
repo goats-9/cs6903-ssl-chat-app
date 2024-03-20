@@ -9,10 +9,13 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include <netdb.h>
+#include <fstream>
 
 #define PORT_NUM 8080
 #define PORT "8080"
 #define BUFFER_SIZE 1024
+
+extern ofstream log_file;
 
 // get sockaddr, IPv4 or IPv6:
 void *get_in_addr(struct sockaddr *sa)
@@ -50,11 +53,13 @@ Socket::~Socket()
 string Socket::receive_msg()
 {
     char buffer[BUFFER_SIZE];
+    log_file << "Receiving message" << endl;
     if (recv(skt, buffer, BUFFER_SIZE, 0) == -1)
     {
         perror("socket: receive_msg");
         exit(1);
     }
+    log_file << "Received message: " << string(buffer) << endl;
     return string(buffer);
 }
 
@@ -67,7 +72,8 @@ string Socket::receive_ctl_msg()
 
 void Socket::send_msg(string msg)
 {
-    if (send(skt, msg.c_str(), msg.size(), 0) == -1)
+    log_file << "Sending message: " << msg << endl;
+    if (sendto(skt, msg.c_str(), msg.length(), 0, (struct sockaddr*)&addr, sizeof(addr)) == -1)
     {
         perror("socket: send_msg");
         exit(1);
@@ -98,7 +104,14 @@ Server::Server(uint32_t ip, int port, ChatWindow *chat_window)
     this->chat_window = chat_window;
     this->ip = ip;
     this->port = port;
+    log_file << "Creating socket" << endl;
     skt = socket(AF_INET, SOCK_DGRAM, 0);
+    if (skt == -1)
+    {
+        perror("socket: socket");
+        exit(1);
+    }
+    log_file << "Socket created" << endl;
 }
 
 void Server::start()
@@ -120,9 +133,11 @@ void Server::start()
         fprintf(stderr, "getaddrinfo: %s\n", gai_strerror(rv));
         exit(1);
     }
+
+    handle_client();
 }
 
-void Server::handle_client(int client_skt)
+void Server::handle_client()
 {
     struct addrinfo *p;
     // loop through all the results and bind to the first we can
@@ -142,6 +157,8 @@ void Server::handle_client(int client_skt)
             continue;
         }
 
+        server = *(p->ai_addr);
+
         break;
     }
 
@@ -152,15 +169,19 @@ void Server::handle_client(int client_skt)
     }
 
     freeaddrinfo(this->servinfo);
-    Server::handshake(this->skt);
-    Socket client(chat_window, this->skt);
-    client.user = "client";
-    client.run();
+    socketObj = new Socket(chat_window, this->skt);
+    Server::handshake();
+    socketObj->user = "client";
+    socketObj->run();
 }
 
-bool Server::handshake(int client_skt)
+bool Server::handshake()
 {
-    // TODO: implement handshake
+    if (recvfrom(skt, NULL, 0, 0, (struct sockaddr *)&socketObj->addr, sizeof(socketObj->addr)) == -1)
+    {
+        perror("handshake: recvfrom");
+        exit(1);
+    }
     return true;
 }
 
@@ -200,7 +221,9 @@ void Client::start(string server_name)
         {
             perror("talker: socket");
             continue;
-        }
+        };
+
+        server = *(p->ai_addr);
 
         break;
     }
@@ -212,10 +235,10 @@ void Client::start(string server_name)
     }
 
     freeaddrinfo(servinfo);
+    socketObj = new Socket(chat_window, this->skt);
     Client::handshake();
-    Socket client(chat_window, this->skt);
-    client.user = "Server";
-    client.run();
+    socketObj->user = "Server";
+    socketObj->run();
 }
 
 bool Client::handshake()

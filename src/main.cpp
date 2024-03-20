@@ -4,6 +4,8 @@
 using namespace std;
 // argument parsing
 
+ofstream log_file;
+
 int main(int argc, char *argv[])
 {
     if (argc < 2)
@@ -14,13 +16,15 @@ int main(int argc, char *argv[])
 
     if (strcmp(argv[1], "-s") == 0)
     {
+        log_file.open("server.log");
         ChatApp app(SERVER, "bob", "localhost", 8080);
-        app.run_tui();
+        app.run();
     }
     else if (strcmp(argv[1], "-c") == 0)
     {
+        log_file.open("client.log");
         ChatApp app(CLIENT, "alice", "localhost", 8080);
-        app.run_tui();
+        app.run();
     }
     else
     {

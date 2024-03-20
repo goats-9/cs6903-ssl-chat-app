@@ -104,6 +104,7 @@ class ChatWindow {
 
     void message_received(const string &user, const string &message);
     void send_message(const string &message);
+    void *callback(string message);
     bool run_forever();
 };
 
