@@ -26,6 +26,40 @@ void *get_in_addr(struct sockaddr *sa)
     return &(((struct sockaddr_in6 *)sa)->sin6_addr);
 }
 
+string recv_msg_from(int skt, struct sockaddr_in &addr){
+    char buffer[BUFFER_SIZE];
+    socklen_t addr_len = sizeof(addr);
+    ssize_t numbytes;
+    sockaddr_in addr2 = {0};
+
+    do {
+        if ((numbytes=recvfrom(skt, buffer, BUFFER_SIZE, 0, (struct sockaddr *)&addr2, &addr_len)) == -1)
+        {
+            perror("socket: receive_msg");
+            exit(1);
+        }
+        if (numbytes == 0){
+            return "";
+        }
+        if (addr.sin_addr.s_addr == 0 && addr.sin_port == 0){
+            addr = addr2;
+            break;
+        }
+    } while (addr.sin_addr.s_addr != addr2.sin_addr.s_addr || addr.sin_port != addr2.sin_port);
+
+    buffer[numbytes] = '\0';
+
+    return string(buffer);
+}
+
+void send_msg_to(int skt, struct sockaddr_in addr, string msg){
+    if (sendto(skt, msg.c_str(), msg.length(), 0, (struct sockaddr*)&addr, sizeof(addr)) == -1)
+    {
+        perror("socket: send_msg");
+        exit(1);
+    }
+}
+
 Socket::Socket(ChatWindow *chat_window, int skt)
 {
     this->chat_window = chat_window;
@@ -194,9 +228,11 @@ void Server::handle_client()
 
     freeaddrinfo(this->servinfo);
     socketObj = new Socket(chat_window, this->skt);
-    Server::handshake();
+    if (!Server::handshake()){
+        return;
+    }
     log_file << "Handshake done" << endl;
-    socketObj->user = "client";
+    // socketObj->user = "client";
     socketObj->addr = client_addr;
     socketObj->chat_window = chat_window;
     socketObj->run();
@@ -228,24 +264,51 @@ bool Server::handshake()
 
     log_file << "Server::handshake(): server addr: " << inet_ntoa(server_addr.sin_addr) << ":" << ntohs(server_addr.sin_port) << endl;
 
-    if ((numbytes = recvfrom(skt, buf, BUFFER_SIZE, 0, (struct sockaddr *)&client_addr, &addr_len)) == -1)
+    // receive chat_START_SSL message
+    string msg = recv_msg_from(skt, client_addr);
+    log_file << "Server::handshake(): start_SSL_CHAT received: " << msg << endl;
+    if (msg != "chat_START_SSL")
     {
-        perror("handshake: recvfrom");
-        exit(1);
+        log_file << "Server::handshake(): Invalid message received: " << msg << endl;
+        return false;
     }
+
+    // send chat_START_SSL_ACK message
+    send_msg_to(skt, client_addr, "chat_START_SSL_ACK");
+    log_file << "Server::handshake(): chat_START_SSL_ACK sent" << endl;
+
+    // receive username
+    string username = recv_msg_from(skt, client_addr);
+    log_file << "Server::handshake(): username received: " << username << endl;
+    socketObj->user = username;
+
+    // send username_ACK
+    send_msg_to(skt, client_addr, "username_ACK");
+    log_file << "Server::handshake(): username_ACK sent" << endl;
+
+    // send our username
+    send_msg_to(skt, client_addr, chat_window->user);
+    log_file << "Server::handshake(): username sent: " << chat_window->user << endl;
+
+    // receive username_ACK
+    msg = recv_msg_from(skt, client_addr);
+    if (msg != "username_ACK")
+    {
+        log_file << "Server::handshake(): Invalid message received: " << msg << endl;
+        return false;
+    }
+    log_file << "Server::handshake(): username_ACK received" << endl;
 
     log_file << "Server::handshake(): client addr: " << inet_ntoa(client_addr.sin_addr) << " " << ntohs(client_addr.sin_port) << endl;
 
     this->client_addr = client_addr;
-
-    buf[numbytes] = '\0';
-    log_file << "Server::handshake(): numbytes=" << numbytes << endl;
-    log_file << "Handshake message: " << buf << endl;
     return true;
 }
 
 void Server::stop()
 {
+    socketObj->send_msg("exit");
+    socketObj->stop();
     close(this->skt);
 }
 
@@ -296,9 +359,10 @@ void Client::start(string server_name)
 
     freeaddrinfo(servinfo);
     socketObj = new Socket(chat_window, this->skt);
-    Client::handshake();
+    if (!Client::handshake())
+        return;
     log_file << "Handshake done" << endl;
-    socketObj->user = "Server";
+    // socketObj->user = "Server";
     socketObj->addr = server_addr;
     socketObj->chat_window = chat_window;
     socketObj->run();
@@ -317,15 +381,41 @@ bool Client::handshake()
 {
     ssize_t numbytes;
     log_file << "Client::handshake(): " << inet_ntoa(server_addr.sin_addr) << " " << ntohs(server_addr.sin_port) << endl;
-    if ((numbytes = sendto(skt, "Hello, server!", 13, 0, (struct sockaddr *)&server_addr, sizeof(server_addr))) == -1)
+    send_msg_to(skt, server_addr, "chat_START_SSL");
+    log_file << "Client::handshake(): chat_START_SSL sent" << endl;
+
+    string msg = recv_msg_from(skt, server_addr);
+    if (msg != "chat_START_SSL_ACK")
     {
-        perror("handshake: sendto");
-        exit(1);
+        log_file << "Client::handshake(): Invalid message received: " << msg << endl;
+        return false;
     }
+    log_file << "Client::handshake(): chat_START_SSL_ACK received" << endl;
+
+    send_msg_to(skt, server_addr, chat_window->user);
+    log_file << "Client::handshake(): username sent: " << chat_window->user << endl;
+
+    msg = recv_msg_from(skt, server_addr);
+    if (msg != "username_ACK")
+    {
+        log_file << "Client::handshake(): Invalid message received: " << msg << endl;
+        return false;
+    }
+    log_file << "Client::handshake(): username_ACK received" << endl;
+
+    sockaddr_in dummy = {0};
+    socketObj->user = recv_msg_from(skt, dummy);
+    log_file << "Client::handshake(): username received: " << socketObj->user << endl;
+
+    send_msg_to(skt, server_addr, "username_ACK");
+    log_file << "Client::handshake(): username_ACK sent" << endl;
+
     return true;
 }
 
 void Client::stop()
 {
+    socketObj->send_msg("exit");
+    socketObj->stop();
     close(this->skt);
 }

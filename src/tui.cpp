@@ -269,6 +269,8 @@ bool ChatWindow::run_forever() {
             string message = recv_queue->front().second;
             recv_queue->pop();
             recv_queue_mutex->unlock();
+            if (message == "exit")
+                return false;
             message_received(user, message);
             return true;
         } else {

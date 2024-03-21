@@ -90,7 +90,6 @@ class ChatWindow {
     WINDOW *chat_window=NULL;
     InputBox *input_box=NULL;
     ChatBox *chat_box=NULL;
-    string user;
     vector <Message> *messages;
     int chat_window_height;
     int chat_window_width;
@@ -104,6 +103,7 @@ class ChatWindow {
     void create_chat_box();
 
     public:
+    string user;
     queue<string> *send_queue;
     queue<pair<string, string>> *recv_queue;
     mutex *send_queue_mutex;

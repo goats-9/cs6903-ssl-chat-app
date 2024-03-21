@@ -162,10 +162,10 @@ void ChatApp::run_input_handler() {
 
 void ChatApp::stop_client()
 {
-    client->socketObj->stop();
+    client->stop();
 }
 
 void ChatApp::stop_server()
 {
-    server->socketObj->stop();
+    server->stop();
 }
