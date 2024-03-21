@@ -24,6 +24,7 @@ public:
     void send_msg(string msg);
     void send_ctl_msg(string msg);
     void run();
+    void stop();
 };
 
 class Server

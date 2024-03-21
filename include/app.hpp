@@ -29,19 +29,22 @@ class ChatApp
     mutex recv_queue_mutex;
     Server *server = NULL;
     Client *client = NULL;
+    bool running = false;
 
-    vector<Message> messages = {
-        {0, "user1", "hello"},
-        {1, "user2", "hi"},
-        {2, "user1", "how are you?"},
-        {3, "user2", "I'm fine, thank you"},
-        {4, "user1", "good to hear that"},
-        {5, "user2", "how about you?"},
-        {6, "user1", "I'm good"},
-        {7, "user2", "that's great"},
-        {8, "user1", "bye"},
-        {9, "user2", "bye"}
-    };
+    // vector<Message> messages = {
+    //     {0, "user1", "hello"},
+    //     {1, "user2", "hi"},
+    //     {2, "user1", "how are you?"},
+    //     {3, "user2", "I'm fine, thank you"},
+    //     {4, "user1", "good to hear that"},
+    //     {5, "user2", "how about you?"},
+    //     {6, "user1", "I'm good"},
+    //     {7, "user2", "that's great"},
+    //     {8, "user1", "bye"},
+    //     {9, "user2", "bye"}
+    // };
+
+    vector<Message> messages;
 
 public:
     ChatApp(UserRole role, string user, string hostname, uint16_t port);

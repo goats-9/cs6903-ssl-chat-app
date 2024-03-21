@@ -58,32 +58,34 @@ ChatApp::~ChatApp()
 
 void ChatApp::run()
 {
-    log_file << "running" << endl;
+    running = true;
+    log_file << "ChatApp::run(): running" << endl;
     if (role == SERVER)
     {
-        log_file << "starting thread" << endl;
+        log_file << "ChatApp::run(): starting server thread" << endl;
         network_thread = new thread(&ChatApp::run_server, this);
         input_handler_thread = new thread(&ChatApp::run_input_handler, this);
-        log_file << "thread started" << endl;
+        log_file << "ChatApp::run(): server thread started" << endl;
     }
     else
     {
+        log_file << "ChatApp::run(): starting client thread" << endl;
         network_thread = new thread(&ChatApp::run_client, this);
         input_handler_thread = new thread(&ChatApp::run_input_handler, this);
+        log_file << "ChatApp::run(): client thread started" << endl;
     }
     run_tui();
-    log_file << "tui stopped" << endl;
+    log_file << "ChatApp::run(): tui stopped" << endl;
+    running = false;
     stop_network_thread();
+    network_thread->join();
+    log_file << "ChatApp::run(): network thread stopped" << endl;
+    input_handler_thread->join();
+    log_file << "ChatApp::run(): input handler thread stopped" << endl;
 }
 
 void ChatApp::run_client()
 {
-    // connect to server
-    //  handshake
-    //  call message_received when message is received
-    //  start_client();
-    // Client client(ip, Port, chat_window);
-
     while (chatWindow == NULL)
     {
         usleep(1000);
@@ -96,13 +98,7 @@ void ChatApp::run_client()
 
 void ChatApp::run_server()
 {
-    // start server
-    // accept connections
-    // create new thread for each connection
-    // start_server();
-
     log_file << "running server" << endl;
-    // Server server(ip, Port, chat_window);
     while (chatWindow == NULL)
     {
         usleep(1000);
@@ -140,7 +136,7 @@ void ChatApp::stop_network_thread()
 }
 
 void ChatApp::run_input_handler() {
-    while (true) {
+    while (running) {
         send_queue_mutex.lock();
         // log_file << "ChatApp::run_input_handler -> send_queue.size(): " << send_queue.size() << endl;
         if (!send_queue.empty()) {
@@ -156,18 +152,16 @@ void ChatApp::run_input_handler() {
         } else {
             send_queue_mutex.unlock();
         }
-        usleep(50);
+        usleep(1000);
     }
 }
 
 void ChatApp::stop_client()
 {
-    // stop the client
-    // client_stop();
+    client->socketObj->stop();
 }
 
 void ChatApp::stop_server()
 {
-    // stop the server
-    // server_stop();
+    server->socketObj->stop();
 }
