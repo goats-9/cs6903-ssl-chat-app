@@ -2,6 +2,7 @@
 #define SSL_CHAT_APP_APP_H
 
 #include "tui.hpp"
+#include "net.hpp"
 #include <thread>
 enum UserRole
 {
@@ -16,12 +17,16 @@ class ChatApp
     string other_user;
     UserRole role;
     string hostname;
-    uint8_t port;
+    uint16_t port;
     thread *network_thread = NULL;
+    thread *input_handler_thread = NULL;
     uint32_t ip;
     int Port;
-    ChatWindow *chat_window = NULL;
     bool connected = false;
+    queue<string> send_queue;
+    queue<pair<string, string>> recv_queue;
+    mutex send_queue_mutex;
+    mutex recv_queue_mutex;
     Server *server = NULL;
     Client *client = NULL;
 
@@ -46,6 +51,7 @@ public:
     void run();
     void run_client();
     void run_server();
+    void run_input_handler();
     void run_tui();
     void stop_network_thread();
     void stop_client();

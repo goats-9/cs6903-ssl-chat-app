@@ -4,6 +4,8 @@
 #include <ncurses.h>
 #include <string>
 #include <vector>
+#include <queue>
+#include <mutex>
 
 using namespace std;
 
@@ -18,6 +20,7 @@ enum InputEvent {
     WIN_RESIZE,
     KEY_EOF,
     USER2_ENTER,
+    NOTHING,
 };
 
 enum InputMode {
@@ -78,7 +81,7 @@ class InputBox {
     // return the input string and a boolean
     // If boolean is true then enter was pressed
     // If boolean is false then escape was pressed
-    pair<string, InputEvent> get_input(string prefilled="", InputMode mode=INSERT);
+    pair<string, InputEvent> get_input(string prefilled="", InputMode mode=INSERT, bool refresh=true);
     void clear_input();
     void print_message(const string &message, bool clear=true);
 };
@@ -96,9 +99,15 @@ class ChatWindow {
     bool is_scrolling = false;
     string prefilled="";
 
+    mutex tui_lock;
+
     void create_chat_box();
 
     public:
+    queue<string> *send_queue;
+    queue<pair<string, string>> *recv_queue;
+    mutex *send_queue_mutex;
+    mutex *recv_queue_mutex;
     ChatWindow(WINDOW *parent, vector <Message> *messages, int height, int width, int starty, int startx, const string &user, int input_box_height=4);
     ~ChatWindow();
 

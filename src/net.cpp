@@ -1,6 +1,4 @@
 #include "net.hpp"
-#include <stdio.h>
-#include <stdlib.h>
 #include <unistd.h>
 #include <errno.h>
 #include <string.h>
@@ -54,11 +52,19 @@ string Socket::receive_msg()
 {
     char buffer[BUFFER_SIZE];
     log_file << "Receiving message" << endl;
-    if (recv(skt, buffer, BUFFER_SIZE, 0) == -1)
-    {
-        perror("socket: receive_msg");
-        exit(1);
-    }
+    socklen_t addr_len = sizeof(addr);
+    sockaddr_in addr = {0};
+    ssize_t numbytes;
+    do {
+        if ((numbytes=recvfrom(skt, buffer, BUFFER_SIZE, 0, (struct sockaddr *)&addr, &addr_len)) == -1)
+        {
+            perror("socket: receive_msg");
+            exit(1);
+        }
+    } while (addr.sin_addr.s_addr != this->addr.sin_addr.s_addr || addr.sin_port != this->addr.sin_port);
+
+    buffer[numbytes] = '\0';
+
     log_file << "Received message: " << string(buffer) << endl;
     return string(buffer);
 }
@@ -95,7 +101,12 @@ void Socket::run()
     while (running)
     {
         string msg = receive_msg();
-        chat_window->message_received(user, msg);
+        log_file << "Socket::run: received message: " << msg << endl;
+        chat_window->recv_queue_mutex->lock();
+        chat_window->recv_queue->push(make_pair(user, msg));
+        chat_window->recv_queue_mutex->unlock();
+        log_file << "Socket::run: pushed message to recv_queue" << endl;
+        // chat_window->message_received(user, msg);
     }
 }
 
@@ -157,7 +168,7 @@ void Server::handle_client()
             continue;
         }
 
-        server = *(p->ai_addr);
+        server_addr = *(sockaddr_in*)(p->ai_addr);
 
         break;
     }
@@ -171,17 +182,52 @@ void Server::handle_client()
     freeaddrinfo(this->servinfo);
     socketObj = new Socket(chat_window, this->skt);
     Server::handshake();
+    log_file << "Handshake done" << endl;
     socketObj->user = "client";
+    socketObj->addr = client_addr;
+    socketObj->chat_window = chat_window;
     socketObj->run();
 }
 
+// void Server::start() {
+
+//     server_addr.sin_family = AF_INET;
+//     server_addr.sin_port = htons(port);
+//     server_addr.sin_addr.s_addr = INADDR_ANY;
+
+//     if (bind(skt, (struct sockaddr *)&server_addr, sizeof(server_addr)) == -1)
+//     {
+//         perror("socket: bind");
+//         exit(1);
+//     }
+
+//     socketObj = new Socket(chat_window, skt);
+
+//     Server::handshake();
+// }
+
 bool Server::handshake()
 {
-    if (recvfrom(skt, NULL, 0, 0, (struct sockaddr *)&socketObj->addr, sizeof(socketObj->addr)) == -1)
+    char buf[BUFFER_SIZE];
+    ssize_t numbytes;
+    struct sockaddr_in client_addr;
+    socklen_t addr_len = sizeof(client_addr);
+
+    log_file << "Server::handshake: " << inet_ntoa(server_addr.sin_addr) << ":" << ntohs(server_addr.sin_port) << endl;
+
+    if ((numbytes = recvfrom(skt, buf, BUFFER_SIZE, 0, (struct sockaddr *)&client_addr, &addr_len)) == -1)
     {
         perror("handshake: recvfrom");
         exit(1);
     }
+
+    log_file << "Server::handshake: " << inet_ntoa(client_addr.sin_addr) << " " << client_addr.sin_port << endl;
+
+    this->client_addr = client_addr;
+
+    buf[numbytes] = '\0';
+    log_file << "Server::handshake: numbytes=" << numbytes << endl;
+    log_file << "Handshake message: " << buf << endl;
     return true;
 }
 
@@ -194,8 +240,9 @@ Client::Client(uint32_t ip, int port, ChatWindow *chat_window)
 {
     this->chat_window = chat_window;
     this->ip = ip;
+    log_file << "Client: " << ip << ":" << port << endl;
     this->port = port;
-    skt = socket(AF_INET, SOCK_STREAM, 0);
+    skt = socket(AF_INET, SOCK_DGRAM, 0);
 }
 
 void Client::start(string server_name)
@@ -223,7 +270,7 @@ void Client::start(string server_name)
             continue;
         };
 
-        server = *(p->ai_addr);
+        server_addr = *(sockaddr_in *)(p->ai_addr);
 
         break;
     }
@@ -237,13 +284,31 @@ void Client::start(string server_name)
     freeaddrinfo(servinfo);
     socketObj = new Socket(chat_window, this->skt);
     Client::handshake();
+    log_file << "Handshake done" << endl;
     socketObj->user = "Server";
+    socketObj->addr = server_addr;
+    socketObj->chat_window = chat_window;
     socketObj->run();
 }
 
+// void Client::start(string servername) {
+//     server_addr.sin_family = AF_INET;
+//     server_addr.sin_port = htons(port);
+//     log_file << "Client::start: " << servername << ":" << port << endl;
+//     server_addr.sin_addr.s_addr = inet_addr(servername.c_str());
+
+//     Client::handshake();
+// }
+
 bool Client::handshake()
 {
-    // TODO: implement handshake
+    ssize_t numbytes;
+    log_file << "Client::handshake: " << inet_ntoa(server_addr.sin_addr) << " " << ntohs(server_addr.sin_port) << endl;
+    if ((numbytes = sendto(skt, "Hello, server!", 13, 0, (struct sockaddr *)&server_addr, sizeof(server_addr))) == -1)
+    {
+        perror("handshake: sendto");
+        exit(1);
+    }
     return true;
 }
 

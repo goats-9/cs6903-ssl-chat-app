@@ -1,5 +1,4 @@
 #include "app.hpp"
-#include "net.hpp"
 #include <bits/stdc++.h>
 using namespace std;
 // argument parsing
@@ -23,7 +22,7 @@ int main(int argc, char *argv[])
     else if (strcmp(argv[1], "-c") == 0)
     {
         log_file.open("client.log");
-        ChatApp app(CLIENT, "alice", "localhost", 8080);
+        ChatApp app(CLIENT, "alice", argv[2], 8080);
         app.run();
     }
     else

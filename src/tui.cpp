@@ -1,6 +1,7 @@
 #include "tui.hpp"
 #include <fstream>
 #include <algorithm>
+#include <unistd.h>
 
 extern ofstream log_file;
 
@@ -134,30 +135,35 @@ void InputBox::print_message(const string &message, bool clear) {
     wrefresh(input_box);
 }
 
-pair<string, enum InputEvent> InputBox::get_input(string prefilled, enum InputMode mode) {
+pair<string, enum InputEvent> InputBox::get_input(string prefilled, enum InputMode mode, bool refresh) {
     // wmove(input_box, 0, 0);
     // clear_input();
     // wprintw(input_box, "%s", prefilled.c_str());
-
-    print_message(prefilled);
+    if (refresh && prefilled.length() > 0)
+        print_message(prefilled);
 
     string input = prefilled;
     int ch;
     while (true) {
-        if (mode == INSERT){
-            if (input.length() == 0){
-                // clear_input();
-                // wprintw(input_box, "Type here: ");
-                print_message("Type here: ");
+        if (refresh){
+            if (mode == INSERT){
+                if (input.length() == 0){
+                    // clear_input();
+                    // wprintw(input_box, "Type here: ");
+                    print_message("Type here: ");
+                }
             }
+            else {
+                // clear_input();
+                // wprintw(input_box, "Press ESC to insert");
+                print_message("Press ESC to insert");
+            }
+            wrefresh(input_box);
         }
-        else {
-            // clear_input();
-            // wprintw(input_box, "Press ESC to insert");
-            print_message("Press ESC to insert");
-        }
-        wrefresh(input_box);
         ch = getch();
+        if (ch == ERR){
+            return make_pair(input, NOTHING);
+        }
 
         if (ch == 10) {
             if (mode != INSERT)
@@ -257,8 +263,10 @@ void ChatWindow::send_message(const string &message) {
     messages->push_back({messages->size(), user, message});
     create_chat_box();
 
-    // socketObj->send_msg(message);
-
+    send_queue_mutex->lock();
+    send_queue->push(message);
+    send_queue_mutex->unlock();
+    log_file << "ChatWindow::send_message pushed: " << message << endl;
 }
 
 void ChatWindow::message_received(const string &user, const string &message) {
@@ -268,8 +276,21 @@ void ChatWindow::message_received(const string &user, const string &message) {
 
 bool ChatWindow::run_forever() {
     InputMode mode = INSERT;
+    InputEvent last_event = ENTER;
     while (true) {
-        auto input = input_box->get_input(prefilled, mode);
+        recv_queue_mutex->lock();
+        if (!recv_queue->empty()) {
+            string user = recv_queue->front().first;
+            string message = recv_queue->front().second;
+            recv_queue->pop();
+            recv_queue_mutex->unlock();
+            message_received(user, message);
+            return true;
+        } else {
+            recv_queue_mutex->unlock();
+        }
+
+        auto input = input_box->get_input(prefilled, mode, last_event != NOTHING);
         switch (input.second) {
             case ENTER:
                 send_message(input.first);
@@ -315,11 +336,13 @@ bool ChatWindow::run_forever() {
             case USER2_ENTER:
                 message_received("user2", input.first);
                 break;
+            case NOTHING:
+                prefilled = input.first;
+                usleep(1000);
+                break;
             default:
                 log_file << "Unknown input event: " << input.second << endl;
                 break;
         }
     }
 }
-
-
