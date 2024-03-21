@@ -12,6 +12,8 @@
 #define PORT_NUM 8080
 #define PORT "8080"
 #define BUFFER_SIZE 1024
+#define MAX_TRIES 3
+#define TIMEOUT_SEC 3
 
 extern ofstream log_file;
 
@@ -82,13 +84,14 @@ Socket::~Socket()
     close(skt);
 }
 
-string Socket::receive_msg()
+string Socket::receive_msg(bool is_ctl)
 {
     char buffer[BUFFER_SIZE];
     log_file << "Receiving message" << endl;
     socklen_t addr_len = sizeof(addr);
     sockaddr_in addr = {0};
     ssize_t numbytes;
+
     do {
         if ((numbytes=recvfrom(skt, buffer, BUFFER_SIZE, 0, (struct sockaddr *)&addr, &addr_len)) == -1)
         {
@@ -106,38 +109,61 @@ string Socket::receive_msg()
     return string(buffer);
 }
 
-string Socket::receive_ctl_msg()
-{
-    string recv_msg = Socket::receive_msg();
-    // Send ACK
-    send_msg("ACK");
-}
+// string Socket::receive_ctl_msg()
+// {
+//     string recv_msg = Socket::receive_msg();
+//     // Send ACK
+//     send_msg("ACK");
+// }
 
-void Socket::send_msg(string msg)
+void Socket::send_msg(string msg, struct addrinfo *p, bool is_ctl)
 {
     log_file << "Sending message: " << msg << endl;
-    if (sendto(skt, msg.c_str(), msg.length(), 0, (struct sockaddr*)&addr, sizeof(addr)) == -1)
-    {
-        perror("socket: send_msg");
-        exit(1);
+    if (is_ctl) {
+        for (int i = 0; i < MAX_TRIES; i++) {
+            if (sendto(skt, msg.c_str(), msg.length(), 0, p->ai_addr, p->ai_addrlen) == -1)
+            {
+                perror("socket: send_msg");
+                exit(1);
+            }
+            alarm(TIMEOUT_SEC);
+            while (1) {
+                if (Socket::receive_msg(is_ctl) == "ACK") {
+                    alarm(0);
+                    return;
+                }
+                if (errno == EINTR) {
+                    if (i == MAX_TRIES)
+                        exit(1);
+                    break;
+                }
+            }
+            alarm(0);
+        }
+    } else {
+        if (sendto(skt, msg.c_str(), msg.length(), 0, p->ai_addr, p->ai_addrlen) == -1)
+        {
+            perror("socket: send_msg");
+            exit(1);
+        }
     }
 }
 
-void Socket::send_ctl_msg(string msg)
-{
-    Socket::send_msg(msg);
-    // Wait for ACK
-    while (Socket::receive_msg() != "ACK")
-        ;
-    return;
-}
+// void Socket::send_ctl_msg(string msg)
+// {
+//     Socket::send_msg(msg);
+//     // Wait for ACK
+//     while (Socket::receive_msg() != "ACK")
+//         ;
+//     return;
+// }
 
 void Socket::run()
 {
     running = true;
     while (running)
     {
-        string msg = receive_msg();
+        string msg = receive_msg(false);
         if (msg == "")
         {
             continue;
@@ -176,10 +202,7 @@ void Server::start()
 {
     struct addrinfo hints;
     int rv;
-    int numbytes;
     char buf[BUFFER_SIZE];
-    socklen_t addr_len;
-    char s[INET6_ADDRSTRLEN];
 
     memset(&hints, 0, sizeof hints);
     hints.ai_family = AF_INET; // set to AF_INET to use IPv4
@@ -307,7 +330,7 @@ bool Server::handshake()
 
 void Server::stop()
 {
-    socketObj->send_msg("exit");
+    socketObj->send_msg("exit", (struct addrinfo *)&this->client_addr, true);
     socketObj->stop();
     close(this->skt);
 }
@@ -415,7 +438,7 @@ bool Client::handshake()
 
 void Client::stop()
 {
-    socketObj->send_msg("exit");
+    socketObj->send_msg("exit", (struct addrinfo *)&this->server_addr, true);
     socketObj->stop();
     close(this->skt);
 }

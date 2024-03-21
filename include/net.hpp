@@ -18,9 +18,9 @@ public:
     sockaddr_in addr;
     Socket(ChatWindow *chat_window, int skt = -1);
     ~Socket();
-    string receive_msg();
+    string receive_msg(bool is_ctl);
     string receive_ctl_msg();
-    void send_msg(string msg);
+    void send_msg(string msg, struct addrinfo *p, bool is_ctl);
     void send_ctl_msg(string msg);
     void run();
     void stop();
@@ -28,6 +28,7 @@ public:
 
 class Server
 {
+public:
     int skt;
     uint32_t ip;
     int port;
@@ -36,7 +37,6 @@ class Server
     struct addrinfo *servinfo;
     ChatWindow *chat_window;
 
-public:
     Socket *socketObj;
     Server(uint32_t ip, int port, ChatWindow *chat_window);
     void start();
@@ -47,6 +47,7 @@ public:
 
 class Client
 {
+public:
     int skt;
     uint32_t ip;
     int port;
@@ -54,7 +55,6 @@ class Client
     ChatWindow *chat_window;
     struct addrinfo *servinfo;
 
-public:
     Socket *socketObj;
     Client(uint32_t ip, int port, ChatWindow *chat_window);
     void start(string);

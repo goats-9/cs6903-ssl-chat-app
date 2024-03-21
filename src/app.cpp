@@ -149,9 +149,9 @@ void ChatApp::run_input_handler() {
             send_queue.pop();
             send_queue_mutex.unlock();
             if (role == SERVER) {
-                server->socketObj->send_msg(message);
+                server->socketObj->send_msg(message, (struct addrinfo *)&server->client_addr, false);
             } else {
-                client->socketObj->send_msg(message);
+                client->socketObj->send_msg(message, (struct addrinfo *)&client->server_addr, false);
             }
         } else {
             send_queue_mutex.unlock();
