@@ -10,9 +10,8 @@ void *get_in_addr(struct sockaddr *);
 
 class Socket
 {
-    bool running = false;
-
 public:
+    bool running = false;
     ChatWindow *chat_window;
     string user;
     int skt;

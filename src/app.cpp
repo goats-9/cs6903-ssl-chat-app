@@ -140,6 +140,10 @@ void ChatApp::run_input_handler() {
         send_queue_mutex.lock();
         // log_file << "ChatApp::run_input_handler -> send_queue.size(): " << send_queue.size() << endl;
         if (!send_queue.empty()) {
+            if (role == SERVER && server->socketObj->running == false){
+                send_queue_mutex.unlock();
+                continue;
+            }
             string message = send_queue.front();
             log_file << "ChatApp::run_input_handler -> got message: " << message << endl;
             send_queue.pop();
